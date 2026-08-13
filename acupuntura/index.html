@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tang Ji · Consultor de Acupuntura y MTC</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2246%22 fill=%22%23b5473d%22/><text x=%2250%22 y=%2266%22 font-size=%2255%22 text-anchor=%22middle%22 fill=%22%23f2ede0%22 font-family=%22serif%22>穴</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Zhi+Mang+Xing&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="ink-wash" aria-hidden="true"></div>
+
+<header class="site-header">
+  <div class="brand">
+    <span class="seal">穴</span>
+    <div class="brand-text">
+      <h1>Tang Ji</h1>
+      <p>Consultor personal de acupuntura y MTC</p>
+    </div>
+  </div>
+  <nav class="mode-switch" role="tablist" aria-label="Modo de consulta">
+    <button class="mode-btn is-active" data-mode="enfermedades" role="tab" aria-selected="true">Por dolencia</button>
+    <button class="mode-btn" data-mode="puntos" role="tab" aria-selected="false">Por punto</button>
+    <button class="mode-btn" data-mode="atlas" role="tab" aria-selected="false">Atlas</button>
+  </nav>
+  <button class="edit-toggle" id="editToggle" title="Añadir o editar contenido">✎ Editar</button>
+</header>
+
+<main>
+
+  <!-- ===================== MODO ENFERMEDADES ===================== -->
+  <section class="view" id="view-enfermedades">
+    <div class="search-bar">
+      <input type="search" id="searchDisease" placeholder="Buscar dolencia, síntoma o categoría… ej. «migraña»" autocomplete="off">
+      <span class="search-hint" id="searchHintDisease"></span>
+    </div>
+
+    <div class="content-split">
+      <div class="tree-pane" id="tree" aria-live="polite"></div>
+
+      <aside class="detail-pane" id="diseaseDetail">
+        <div class="empty-state">
+          <span class="empty-glyph">脈</span>
+          <p>Elige una rama del listado, o busca arriba, para ver el detalle de la dolencia y sus puntos.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ===================== MODO PUNTOS ===================== -->
+  <section class="view is-hidden" id="view-puntos">
+    <div class="search-bar">
+      <input type="search" id="searchPoint" placeholder="Buscar punto por código o nombre… ej. «IG4» o «Hegu»" autocomplete="off">
+      <span class="search-hint" id="searchHintPoint"></span>
+    </div>
+
+    <div class="content-split">
+      <div class="tree-pane" id="pointList" aria-live="polite"></div>
+
+      <aside class="detail-pane" id="pointDetail">
+        <div class="empty-state">
+          <span class="empty-glyph">穴</span>
+          <p>Elige un punto de la lista, o busca arriba, para ver su ficha completa.</p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ===================== MODO ATLAS ===================== -->
+  <section class="view is-hidden" id="view-atlas">
+    <div class="atlas-wrap">
+      <div class="meridian-filter" id="meridianFilter"></div>
+      <div class="atlas-note">
+        <p>Aquí irá el atlas visual del cuerpo con los puntos ubicados sobre cada meridiano. De momento, filtra por meridiano para ver el listado de sus puntos — más adelante añadimos los diagramas del cuerpo.</p>
+      </div>
+      <div class="tree-pane" id="atlasList"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===================== PANEL DE EDICIÓN ===================== -->
+<div class="edit-overlay is-hidden" id="editOverlay">
+  <div class="edit-panel">
+    <div class="edit-panel-head">
+      <h2>Añadir o editar contenido</h2>
+      <button class="close-btn" id="closeEdit">✕</button>
+    </div>
+
+    <div class="edit-tabs">
+      <button class="edit-tab is-active" data-tab="categoria">Categoría / subcategoría</button>
+      <button class="edit-tab" data-tab="dolencia">Dolencia</button>
+      <button class="edit-tab" data-tab="punto">Punto</button>
+      <button class="edit-tab" data-tab="datos">Copia de seguridad</button>
+    </div>
+
+    <!-- Nueva categoría -->
+    <form class="edit-form" id="form-categoria" data-tabcontent="categoria">
+      <label>Categoría padre (déjalo vacío para crear una categoría de nivel principal)
+        <select id="cat-parent"><option value="">— Nivel principal —</option></select>
+      </label>
+      <label>Nombre de la nueva categoría o subcategoría
+        <input type="text" id="cat-nombre" required placeholder="ej. Dolores de espalda">
+      </label>
+      <button type="submit" class="btn-primary">Guardar categoría</button>
+      <p class="form-note" id="cat-note"></p>
+    </form>
+
+    <!-- Nueva dolencia -->
+    <form class="edit-form is-hidden" id="form-dolencia" data-tabcontent="dolencia">
+      <label>Categoría donde colocarla
+        <select id="dol-parent" required></select>
+      </label>
+      <label>Nombre de la dolencia / síntoma
+        <input type="text" id="dol-nombre" required placeholder="ej. Migraña con aura">
+      </label>
+      <label>Descripción / notas de tratamiento
+        <textarea id="dol-desc" rows="3" placeholder="Protocolo, orden de los puntos, frecuencia de sesiones…"></textarea>
+      </label>
+      <label>Puntos relacionados (códigos separados por coma)
+        <input type="text" id="dol-puntos" placeholder="ej. IG4, E36, VB20">
+      </label>
+      <button type="submit" class="btn-primary">Guardar dolencia</button>
+      <p class="form-note" id="dol-note"></p>
+    </form>
+
+    <!-- Nuevo punto -->
+    <form class="edit-form is-hidden" id="form-punto" data-tabcontent="punto">
+      <label>Código del punto
+        <input type="text" id="pt-codigo" required placeholder="ej. IG4">
+      </label>
+      <label>Nombre (chino / traducción)
+        <input type="text" id="pt-nombre" required placeholder="ej. Hegu · Valle de la Unión">
+      </label>
+      <label>Meridiano
+        <input type="text" id="pt-meridiano" required placeholder="ej. Intestino Grueso">
+      </label>
+      <label>Ubicación / cómo encontrarlo
+        <textarea id="pt-ubicacion" rows="2" placeholder="Descripción anatómica para localizarlo"></textarea>
+      </label>
+      <label>Indicaciones (qué trata)
+        <textarea id="pt-indicaciones" rows="2"></textarea>
+      </label>
+      <label>Técnica de estimulación
+        <textarea id="pt-tecnica" rows="2"></textarea>
+      </label>
+      <label>Precauciones / contraindicaciones
+        <textarea id="pt-precauciones" rows="2"></textarea>
+      </label>
+      <button type="submit" class="btn-primary">Guardar punto</button>
+      <p class="form-note" id="pt-note"></p>
+    </form>
+
+    <!-- Backup -->
+    <div class="edit-form is-hidden" id="form-datos" data-tabcontent="datos">
+      <p>Todo lo que añades se guarda automáticamente en este navegador. Descarga una copia de seguridad de vez en cuando, sobre todo antes de cambiar de ordenador o de navegador.</p>
+      <div class="backup-actions">
+        <button class="btn-primary" id="exportBtn">⬇ Descargar copia de seguridad</button>
+        <label class="btn-secondary" for="importFile">⬆ Restaurar desde archivo
+          <input type="file" id="importFile" accept="application/json" hidden>
+        </label>
+        <button class="btn-danger" id="resetBtn">Restaurar datos de ejemplo</button>
+      </div>
+      <p class="form-note" id="datos-note"></p>
+    </div>
+
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
