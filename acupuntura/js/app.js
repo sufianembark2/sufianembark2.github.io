@@ -74,6 +74,35 @@ function findPathByRef(nodes, target, path) {
   return null;
 }
 
+function removeNodeById(list, id) {
+  const idx = list.findIndex(n => n.id === id);
+  if (idx > -1) {
+    list.splice(idx, 1);
+    return true;
+  }
+  for (const n of list) {
+    if (isBranch(n) && removeNodeById(n.children, id)) return true;
+  }
+  return false;
+}
+
+function findParentId(nodes, id) {
+  for (const n of nodes) {
+    if (isBranch(n)) {
+      if (n.children.some(c => c.id === id)) return n.id;
+      const deeper = findParentId(n.children, id);
+      if (deeper !== null) return deeper;
+    }
+  }
+  return null;
+}
+
+function collectIds(node) {
+  let ids = [node.id];
+  if (isBranch(node)) node.children.forEach(c => { ids = ids.concat(collectIds(c)); });
+  return ids;
+}
+
 function escapeHtml(str) {
   const div = document.createElement("div");
   div.textContent = str;
@@ -125,6 +154,34 @@ function buildNodeEl(node, depth, query) {
     count.textContent = n + (n === 1 ? " dolencia" : " dolencias");
     row.appendChild(count);
   }
+
+  const actions = document.createElement("span");
+  actions.className = "node-actions admin-only";
+  if (branch) {
+    actions.innerHTML =
+      '<button type="button" class="node-act" data-act="addcat" title="Añadir subcategoría aquí">📁+</button>' +
+      '<button type="button" class="node-act" data-act="adddis" title="Añadir dolencia aquí">🩹+</button>' +
+      '<button type="button" class="node-act" data-act="edit" title="Editar / mover">✎</button>' +
+      '<button type="button" class="node-act" data-act="del" title="Eliminar">🗑</button>';
+  } else {
+    actions.innerHTML =
+      '<button type="button" class="node-act" data-act="edit" title="Editar dolencia">✎</button>' +
+      '<button type="button" class="node-act" data-act="del" title="Eliminar dolencia">🗑</button>';
+  }
+  actions.addEventListener("click", e => {
+    e.stopPropagation();
+    const act = e.target.closest(".node-act");
+    if (!act) return;
+    if (act.dataset.act === "addcat") startAddCategory(node.id);
+    if (act.dataset.act === "adddis") startAddDisease(node.id);
+    if (act.dataset.act === "edit") {
+      if (branch) startEditCategory(node); else startEditDisease(node);
+    }
+    if (act.dataset.act === "del") {
+      if (branch) deleteCategoryNode(node); else deleteDiseaseNode(node);
+    }
+  });
+  row.appendChild(actions);
 
   el.appendChild(row);
 
@@ -248,7 +305,18 @@ function renderPointList(query, filterMeridian, containerOverride) {
     row.innerHTML =
       '<span class="node-toggle"></span><span class="node-label">' +
       "<strong>" + highlight(pt.code, query) + "</strong> · " + highlight(pt.name, query) +
-      '</span><span class="node-count">' + escapeHtml(pt.meridian) + "</span>";
+      '</span><span class="node-count">' + escapeHtml(pt.meridian) + "</span>" +
+      '<span class="node-actions admin-only">' +
+      '<button type="button" class="node-act" data-act="edit" title="Editar punto">✎</button>' +
+      '<button type="button" class="node-act" data-act="del" title="Eliminar punto">🗑</button>' +
+      "</span>";
+    row.querySelector(".node-actions").addEventListener("click", e => {
+      e.stopPropagation();
+      const act = e.target.closest(".node-act");
+      if (!act) return;
+      if (act.dataset.act === "edit") startEditPoint(pt);
+      if (act.dataset.act === "del") deletePointEntry(pt);
+    });
     row.addEventListener("click", () => {
       container.querySelectorAll(".node-row.is-selected").forEach(r => r.classList.remove("is-selected"));
       row.classList.add("is-selected");
@@ -419,8 +487,8 @@ function setAdminSession(on) {
 
 function updateSessionUI() {
   const admin = isAdmin();
+  document.body.classList.toggle("is-admin", admin);
   editToggle.classList.toggle("is-admin", admin);
-  editToggle.textContent = admin ? "✎ Editar" : "✎ Editar";
   logoutBtn.classList.toggle("is-hidden", !admin);
 }
 
@@ -537,8 +605,9 @@ function flattenBranches(nodes, depth, prefix) {
   return out;
 }
 
-function refreshParentSelects() {
-  const branches = flattenBranches(DATA.categories, 0, "");
+function refreshParentSelects(excludeCatIds) {
+  const exclude = excludeCatIds || [];
+  const branches = flattenBranches(DATA.categories, 0, "").filter(b => !exclude.includes(b.node.id));
 
   const catParent = document.getElementById("cat-parent");
   catParent.innerHTML = '<option value="">— Nivel principal —</option>';
@@ -582,34 +651,172 @@ function refreshEverything() {
   refreshParentSelects();
 }
 
-/* Form: nueva categoría */
+function switchEditTab(tabName) {
+  const btn = document.querySelector('.edit-tab[data-tab="' + tabName + '"]');
+  if (btn) btn.click();
+}
+
+/* ===================== CATEGORÍAS ===================== */
+
+let editingCategoryId = null;
+
+function resetCategoriaForm() {
+  editingCategoryId = null;
+  document.getElementById("cat-nombre").value = "";
+  document.getElementById("cat-parent").value = "";
+  document.getElementById("cat-submit").textContent = "Guardar categoría";
+  document.getElementById("cat-cancel").classList.add("is-hidden");
+  document.getElementById("cat-delete").classList.add("is-hidden");
+  document.getElementById("cat-note").classList.remove("is-error");
+  document.getElementById("cat-note").textContent = "";
+}
+
+function startAddCategory(parentId) {
+  openEdit();
+  switchEditTab("categoria");
+  resetCategoriaForm();
+  refreshParentSelects();
+  if (parentId) document.getElementById("cat-parent").value = parentId;
+  document.getElementById("cat-nombre").focus();
+}
+
+function startEditCategory(node) {
+  openEdit();
+  switchEditTab("categoria");
+  editingCategoryId = node.id;
+  refreshParentSelects(collectIds(node));
+  document.getElementById("cat-parent").value = findParentId(DATA.categories, node.id) || "";
+  document.getElementById("cat-nombre").value = node.name;
+  document.getElementById("cat-submit").textContent = "Guardar cambios";
+  document.getElementById("cat-cancel").classList.remove("is-hidden");
+  document.getElementById("cat-delete").classList.remove("is-hidden");
+  document.getElementById("cat-note").classList.remove("is-error");
+  document.getElementById("cat-note").textContent = "";
+}
+
+function deleteCategoryNode(node) {
+  const total = countLeaves(node);
+  const hasContent = isBranch(node) && node.children.length > 0;
+  const warning = hasContent
+    ? "\n\nEsto también borrará todo lo que hay dentro (" + total + (total === 1 ? " dolencia" : " dolencias") + ")."
+    : "";
+  if (!confirm('¿Eliminar la categoría "' + node.name + '"?' + warning)) return;
+  removeNodeById(DATA.categories, node.id);
+  saveData();
+  if (editingCategoryId === node.id) resetCategoriaForm();
+  refreshEverything();
+}
+
+document.getElementById("cat-cancel").addEventListener("click", resetCategoriaForm);
+document.getElementById("cat-delete").addEventListener("click", () => {
+  const node = findNodeById(DATA.categories, editingCategoryId);
+  if (node) deleteCategoryNode(node);
+});
+
 document.getElementById("form-categoria").addEventListener("submit", e => {
   e.preventDefault();
   const parentId = document.getElementById("cat-parent").value;
   const nameInput = document.getElementById("cat-nombre");
   const name = nameInput.value.trim();
   if (!name) return;
+  const note = document.getElementById("cat-note");
+  note.classList.remove("is-error");
 
-  const newNode = { id: uid("cat"), name, children: [] };
-  if (parentId) {
-    const parent = findNodeById(DATA.categories, parentId);
-    parent.children.push(newNode);
+  if (editingCategoryId) {
+    const node = findNodeById(DATA.categories, editingCategoryId);
+    if (!node) { resetCategoriaForm(); return; }
+    node.name = name;
+    const oldParentId = findParentId(DATA.categories, node.id);
+    const newParentId = parentId || null;
+    if (oldParentId !== newParentId) {
+      removeNodeById(DATA.categories, node.id);
+      if (newParentId) {
+        const newParent = findNodeById(DATA.categories, newParentId);
+        newParent.children.push(node);
+      } else {
+        DATA.categories.push(node);
+      }
+    }
+    saveData();
+    note.textContent = "✓ Cambios guardados.";
+    resetCategoriaForm();
   } else {
-    DATA.categories.push(newNode);
+    const newNode = { id: uid("cat"), name, children: [] };
+    if (parentId) {
+      const parent = findNodeById(DATA.categories, parentId);
+      parent.children.push(newNode);
+    } else {
+      DATA.categories.push(newNode);
+    }
+    saveData();
+    nameInput.value = "";
+    note.textContent = "✓ Categoría guardada.";
   }
-  saveData();
-  nameInput.value = "";
-  document.getElementById("cat-note").textContent = "✓ Categoría guardada.";
   refreshEverything();
 });
 
-/* Form: nueva dolencia */
+/* ===================== DOLENCIAS ===================== */
+
+let editingDiseaseId = null;
+
+function resetDolenciaForm() {
+  editingDiseaseId = null;
+  document.getElementById("dol-nombre").value = "";
+  document.getElementById("dol-desc").value = "";
+  document.getElementById("dol-puntos").value = "";
+  document.getElementById("dol-submit").textContent = "Guardar dolencia";
+  document.getElementById("dol-cancel").classList.add("is-hidden");
+  document.getElementById("dol-delete").classList.add("is-hidden");
+  document.getElementById("dol-note").classList.remove("is-error");
+  document.getElementById("dol-note").textContent = "";
+}
+
+function startAddDisease(parentId) {
+  openEdit();
+  switchEditTab("dolencia");
+  resetDolenciaForm();
+  refreshParentSelects();
+  if (parentId) document.getElementById("dol-parent").value = parentId;
+  document.getElementById("dol-nombre").focus();
+}
+
+function startEditDisease(node) {
+  openEdit();
+  switchEditTab("dolencia");
+  editingDiseaseId = node.id;
+  refreshParentSelects();
+  document.getElementById("dol-parent").value = findParentId(DATA.categories, node.id) || "";
+  document.getElementById("dol-nombre").value = node.name;
+  document.getElementById("dol-desc").value = node.description || "";
+  document.getElementById("dol-puntos").value = (node.points || []).join(", ");
+  document.getElementById("dol-submit").textContent = "Guardar cambios";
+  document.getElementById("dol-cancel").classList.remove("is-hidden");
+  document.getElementById("dol-delete").classList.remove("is-hidden");
+  document.getElementById("dol-note").classList.remove("is-error");
+  document.getElementById("dol-note").textContent = "";
+}
+
+function deleteDiseaseNode(node) {
+  if (!confirm('¿Eliminar la dolencia "' + node.name + '"?')) return;
+  removeNodeById(DATA.categories, node.id);
+  saveData();
+  if (editingDiseaseId === node.id) resetDolenciaForm();
+  refreshEverything();
+}
+
+document.getElementById("dol-cancel").addEventListener("click", resetDolenciaForm);
+document.getElementById("dol-delete").addEventListener("click", () => {
+  const node = findNodeById(DATA.categories, editingDiseaseId);
+  if (node) deleteDiseaseNode(node);
+});
+
 document.getElementById("form-dolencia").addEventListener("submit", e => {
   e.preventDefault();
   const parentId = document.getElementById("dol-parent").value;
+  const note = document.getElementById("dol-note");
   if (!parentId) {
-    document.getElementById("dol-note").textContent = "Primero crea una categoría.";
-    document.getElementById("dol-note").classList.add("is-error");
+    note.classList.add("is-error");
+    note.textContent = "Primero crea una categoría.";
     return;
   }
   const nameInput = document.getElementById("dol-nombre");
@@ -618,26 +825,115 @@ document.getElementById("form-dolencia").addEventListener("submit", e => {
   const desc = document.getElementById("dol-desc").value.trim();
   const pointsRaw = document.getElementById("dol-puntos").value.trim();
   const points = pointsRaw ? pointsRaw.split(",").map(s => s.trim().toUpperCase()).filter(Boolean) : [];
+  note.classList.remove("is-error");
 
-  const parent = findNodeById(DATA.categories, parentId);
-  parent.children.push({ id: uid("dis"), name, description: desc, points });
-  saveData();
-
-  nameInput.value = "";
-  document.getElementById("dol-desc").value = "";
-  document.getElementById("dol-puntos").value = "";
-  document.getElementById("dol-note").classList.remove("is-error");
-  document.getElementById("dol-note").textContent = "✓ Dolencia guardada en \"" + parent.name + "\".";
+  if (editingDiseaseId) {
+    const node = findNodeById(DATA.categories, editingDiseaseId);
+    if (!node) { resetDolenciaForm(); return; }
+    node.name = name;
+    node.description = desc;
+    node.points = points;
+    const oldParentId = findParentId(DATA.categories, node.id);
+    if (oldParentId !== parentId) {
+      removeNodeById(DATA.categories, node.id);
+      const newParent = findNodeById(DATA.categories, parentId);
+      newParent.children.push(node);
+    }
+    saveData();
+    note.textContent = "✓ Cambios guardados.";
+    resetDolenciaForm();
+  } else {
+    const parent = findNodeById(DATA.categories, parentId);
+    parent.children.push({ id: uid("dis"), name, description: desc, points });
+    saveData();
+    nameInput.value = "";
+    document.getElementById("dol-desc").value = "";
+    document.getElementById("dol-puntos").value = "";
+    note.textContent = "✓ Dolencia guardada en \"" + parent.name + "\".";
+  }
   refreshEverything();
 });
 
-/* Form: nuevo punto */
+/* ===================== PUNTOS ===================== */
+
+let editingPointCode = null;
+const PT_FIELD_IDS = ["pt-codigo", "pt-nombre", "pt-meridiano", "pt-ubicacion", "pt-indicaciones", "pt-tecnica", "pt-precauciones"];
+
+function resetPuntoForm() {
+  editingPointCode = null;
+  PT_FIELD_IDS.forEach(id => { document.getElementById(id).value = ""; });
+  document.getElementById("pt-codigo").disabled = false;
+  document.getElementById("pt-submit").textContent = "Guardar punto";
+  document.getElementById("pt-cancel").classList.add("is-hidden");
+  document.getElementById("pt-delete").classList.add("is-hidden");
+  document.getElementById("pt-note").classList.remove("is-error");
+  document.getElementById("pt-note").textContent = "";
+}
+
+function startAddPoint() {
+  openEdit();
+  switchEditTab("punto");
+  resetPuntoForm();
+  document.getElementById("pt-codigo").focus();
+}
+
+function startEditPoint(pt) {
+  openEdit();
+  switchEditTab("punto");
+  editingPointCode = pt.code;
+  document.getElementById("pt-codigo").value = pt.code;
+  document.getElementById("pt-nombre").value = pt.name;
+  document.getElementById("pt-meridiano").value = pt.meridian;
+  document.getElementById("pt-ubicacion").value = pt.location || "";
+  document.getElementById("pt-indicaciones").value = pt.indications || "";
+  document.getElementById("pt-tecnica").value = pt.technique || "";
+  document.getElementById("pt-precauciones").value = pt.cautions || "";
+  document.getElementById("pt-submit").textContent = "Guardar cambios";
+  document.getElementById("pt-cancel").classList.remove("is-hidden");
+  document.getElementById("pt-delete").classList.remove("is-hidden");
+  document.getElementById("pt-note").classList.remove("is-error");
+  document.getElementById("pt-note").textContent = "";
+}
+
+function renameCodeEverywhere(oldCode, newCode) {
+  function walk(nodes) {
+    nodes.forEach(n => {
+      if (isBranch(n)) {
+        walk(n.children);
+      } else if (n.points) {
+        n.points = n.points.map(c => (c.toUpperCase() === oldCode.toUpperCase() ? newCode : c));
+      }
+    });
+  }
+  walk(DATA.categories);
+}
+
+function deletePointEntry(pt) {
+  const uses = findDiseasesUsingPoint(pt.code);
+  const warning = uses.length > 0
+    ? "\n\nSe usa en " + uses.length + (uses.length === 1 ? " dolencia" : " dolencias") + "; quedará marcado como \"sin añadir\" ahí."
+    : "";
+  if (!confirm('¿Eliminar el punto "' + pt.code + '"?' + warning)) return;
+  DATA.points = DATA.points.filter(p => p.code !== pt.code);
+  saveData();
+  if (editingPointCode === pt.code) resetPuntoForm();
+  refreshEverything();
+}
+
+document.getElementById("pt-cancel").addEventListener("click", resetPuntoForm);
+document.getElementById("pt-delete").addEventListener("click", () => {
+  const pt = DATA.points.find(p => p.code === editingPointCode);
+  if (pt) deletePointEntry(pt);
+});
+
 document.getElementById("form-punto").addEventListener("submit", e => {
   e.preventDefault();
   const code = document.getElementById("pt-codigo").value.trim().toUpperCase();
   const name = document.getElementById("pt-nombre").value.trim();
   const meridian = document.getElementById("pt-meridiano").value.trim();
   if (!code || !name || !meridian) return;
+  const note = document.getElementById("pt-note");
+  note.classList.remove("is-error");
 
   const point = {
     code,
@@ -649,22 +945,38 @@ document.getElementById("form-punto").addEventListener("submit", e => {
     cautions: document.getElementById("pt-precauciones").value.trim()
   };
 
-  const existingIndex = DATA.points.findIndex(p => p.code.toUpperCase() === code);
-  const note = document.getElementById("pt-note");
-  if (existingIndex > -1) {
-    DATA.points[existingIndex] = point;
-    note.textContent = "✓ Punto \"" + code + "\" actualizado.";
-  } else {
+  if (editingPointCode) {
+    const collision = DATA.points.find(p => p.code === code && p.code !== editingPointCode);
+    if (collision) {
+      note.classList.add("is-error");
+      note.textContent = "Ya existe otro punto con el código \"" + code + "\".";
+      return;
+    }
+    const oldCode = editingPointCode;
+    DATA.points = DATA.points.filter(p => p.code !== oldCode);
     DATA.points.push(point);
-    note.textContent = "✓ Punto \"" + code + "\" añadido.";
+    if (oldCode !== code) renameCodeEverywhere(oldCode, code);
+    saveData();
+    note.textContent = "✓ Cambios guardados.";
+    resetPuntoForm();
+  } else {
+    const existingIndex = DATA.points.findIndex(p => p.code.toUpperCase() === code);
+    if (existingIndex > -1) {
+      DATA.points[existingIndex] = point;
+      note.textContent = "✓ Punto \"" + code + "\" actualizado.";
+    } else {
+      DATA.points.push(point);
+      note.textContent = "✓ Punto \"" + code + "\" añadido.";
+    }
+    saveData();
+    PT_FIELD_IDS.forEach(id => { document.getElementById(id).value = ""; });
   }
-  saveData();
-
-  ["pt-codigo", "pt-nombre", "pt-meridiano", "pt-ubicacion", "pt-indicaciones", "pt-tecnica", "pt-precauciones"].forEach(id => {
-    document.getElementById(id).value = "";
-  });
   refreshEverything();
 });
+
+document.getElementById("addRootCatBtn").addEventListener("click", () => startAddCategory(null));
+document.getElementById("addPointBtn").addEventListener("click", () => startAddPoint());
+
 
 /* Copia de seguridad */
 document.getElementById("exportBtn").addEventListener("click", () => {

@@ -22,9 +22,26 @@ Tradicional China, en lugar de tenerlo todo repartido en libretas.
   **Importante sobre esto:** al ser una web sin servidor, este login es
   una valla de acceso para uso normal, no seguridad de nivel bancario —
   alguien con conocimientos técnicos podría saltárselo desde las
-  herramientas de desarrollador del navegador. No es grave porque, como se
-  explica abajo, cada visitante solo puede tocar su propia copia local de
-  los datos, nunca la de otra persona.
+  herramientas de desarrollador del navegador. No es grave porque cada
+  visitante solo puede tocar su propia copia local de los datos, nunca la
+  de otra persona.
+
+- **Edición completa (añadir, editar, mover y eliminar):** una vez iniciada
+  sesión como admin, aparecen botones directamente en cada elemento:
+  - En cada **categoría**: `📁+` añadir subcategoría dentro, `🩹+` añadir
+    dolencia dentro, `✎` editar el nombre (y moverla a otra categoría
+    padre), `🗑` eliminarla (avisa si tiene contenido dentro).
+  - En cada **dolencia**: `✎` editar nombre/descripción/puntos/categoría,
+    `🗑` eliminarla.
+  - En cada **punto** (pestaña "Por punto"): `✎` editar su ficha completa
+    (incluido el código — si lo cambias, se actualiza solo en todas las
+    dolencias que lo usaban), `🗑` eliminarlo.
+  - Botones "＋ Nueva categoría principal" y "＋ Nuevo punto" arriba de
+    cada listado para crear desde cero.
+  - El panel "Editar" (el del botón de arriba) sigue disponible para lo
+    mismo desde un formulario centralizado, y cada pestaña también admite
+    editar/cancelar/eliminar cuando se llega a ella desde uno de los
+    botones inline.
 - **Copia de seguridad:** dentro de "Editar → Copia de seguridad" se puede
   descargar todo en un archivo `.json` y volver a cargarlo (útil al cambiar
   de ordenador, o simplemente para no perder el trabajo).

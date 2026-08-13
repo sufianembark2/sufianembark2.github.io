@@ -43,7 +43,12 @@
     </div>
 
     <div class="content-split">
-      <div class="tree-pane" id="tree" aria-live="polite"></div>
+      <div>
+        <div class="tree-toolbar admin-only">
+          <button class="btn-secondary" id="addRootCatBtn" type="button">＋ Nueva categoría principal</button>
+        </div>
+        <div class="tree-pane" id="tree" aria-live="polite"></div>
+      </div>
 
       <aside class="detail-pane" id="diseaseDetail">
         <div class="empty-state">
@@ -62,7 +67,12 @@
     </div>
 
     <div class="content-split">
-      <div class="tree-pane" id="pointList" aria-live="polite"></div>
+      <div>
+        <div class="tree-toolbar admin-only">
+          <button class="btn-secondary" id="addPointBtn" type="button">＋ Nuevo punto</button>
+        </div>
+        <div class="tree-pane" id="pointList" aria-live="polite"></div>
+      </div>
 
       <aside class="detail-pane" id="pointDetail">
         <div class="empty-state">
@@ -131,7 +141,11 @@
       <label>Nombre de la nueva categoría o subcategoría
         <input type="text" id="cat-nombre" required placeholder="ej. Dolores de espalda">
       </label>
-      <button type="submit" class="btn-primary">Guardar categoría</button>
+      <div class="form-btn-row">
+        <button type="submit" class="btn-primary" id="cat-submit">Guardar categoría</button>
+        <button type="button" class="btn-secondary is-hidden" id="cat-cancel">Cancelar edición</button>
+        <button type="button" class="btn-danger is-hidden" id="cat-delete">Eliminar</button>
+      </div>
       <p class="form-note" id="cat-note"></p>
     </form>
 
@@ -149,7 +163,11 @@
       <label>Puntos relacionados (códigos separados por coma)
         <input type="text" id="dol-puntos" placeholder="ej. IG4, E36, VB20">
       </label>
-      <button type="submit" class="btn-primary">Guardar dolencia</button>
+      <div class="form-btn-row">
+        <button type="submit" class="btn-primary" id="dol-submit">Guardar dolencia</button>
+        <button type="button" class="btn-secondary is-hidden" id="dol-cancel">Cancelar edición</button>
+        <button type="button" class="btn-danger is-hidden" id="dol-delete">Eliminar</button>
+      </div>
       <p class="form-note" id="dol-note"></p>
     </form>
 
@@ -176,7 +194,11 @@
       <label>Precauciones / contraindicaciones
         <textarea id="pt-precauciones" rows="2"></textarea>
       </label>
-      <button type="submit" class="btn-primary">Guardar punto</button>
+      <div class="form-btn-row">
+        <button type="submit" class="btn-primary" id="pt-submit">Guardar punto</button>
+        <button type="button" class="btn-secondary is-hidden" id="pt-cancel">Cancelar edición</button>
+        <button type="button" class="btn-danger is-hidden" id="pt-delete">Eliminar</button>
+      </div>
       <p class="form-note" id="pt-note"></p>
     </form>
 

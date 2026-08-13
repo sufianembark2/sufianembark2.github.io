@@ -530,3 +530,33 @@ mark{
 .tree-pane::-webkit-scrollbar-thumb, .edit-panel::-webkit-scrollbar-thumb{
   background: var(--line); border-radius: 8px;
 }
+
+/* ---------------- Edición inline (solo admin) ---------------- */
+
+body:not(.is-admin) .admin-only{ display: none !important; }
+
+.tree-toolbar{ margin-bottom: 10px; }
+
+.node-actions{
+  display: flex;
+  gap: 3px;
+  margin-left: 8px;
+  flex: none;
+}
+.node-act{
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--paper-dim);
+  border-radius: 6px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+.node-act:hover{ border-color: var(--brass); color: var(--brass); }
+.node-act[data-act="del"]:hover{ border-color: var(--cinnabar); color: var(--cinnabar); }
+
+.form-btn-row{ display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
