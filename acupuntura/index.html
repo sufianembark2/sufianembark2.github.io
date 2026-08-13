@@ -27,7 +27,10 @@
     <button class="mode-btn" data-mode="puntos" role="tab" aria-selected="false">Por punto</button>
     <button class="mode-btn" data-mode="atlas" role="tab" aria-selected="false">Atlas</button>
   </nav>
-  <button class="edit-toggle" id="editToggle" title="Añadir o editar contenido">✎ Editar</button>
+  <div class="session-area">
+    <button class="edit-toggle" id="editToggle" title="Añadir o editar contenido">✎ Editar</button>
+    <button class="logout-btn is-hidden" id="logoutBtn" title="Cerrar sesión">Salir</button>
+  </div>
 </header>
 
 <main>
@@ -83,6 +86,27 @@
 
 </main>
 
+<!-- ===================== INICIO DE SESIÓN ===================== -->
+<div class="edit-overlay is-hidden" id="loginOverlay">
+  <div class="edit-panel login-panel">
+    <div class="edit-panel-head">
+      <h2>Iniciar sesión</h2>
+      <button class="close-btn" id="closeLogin">✕</button>
+    </div>
+    <p class="login-intro">Solo hace falta para añadir o editar contenido. Consultar la web no requiere iniciar sesión.</p>
+    <form class="edit-form" id="form-login">
+      <label>Usuario
+        <input type="text" id="login-user" required autocomplete="username">
+      </label>
+      <label>Contraseña
+        <input type="password" id="login-pass" required autocomplete="current-password">
+      </label>
+      <button type="submit" class="btn-primary">Entrar</button>
+      <p class="form-note" id="login-note"></p>
+    </form>
+  </div>
+</div>
+
 <!-- ===================== PANEL DE EDICIÓN ===================== -->
 <div class="edit-overlay is-hidden" id="editOverlay">
   <div class="edit-panel">
@@ -96,6 +120,7 @@
       <button class="edit-tab" data-tab="dolencia">Dolencia</button>
       <button class="edit-tab" data-tab="punto">Punto</button>
       <button class="edit-tab" data-tab="datos">Copia de seguridad</button>
+      <button class="edit-tab" data-tab="cuenta">Cuenta</button>
     </div>
 
     <!-- Nueva categoría -->
@@ -167,6 +192,22 @@
       </div>
       <p class="form-note" id="datos-note"></p>
     </div>
+
+    <!-- Cuenta -->
+    <form class="edit-form is-hidden" id="form-cuenta" data-tabcontent="cuenta">
+      <p class="login-intro">Cambia el usuario y/o la contraseña de administrador. La contraseña por defecto es <strong>admin / 1234</strong> — te recomiendo cambiarla en cuanto pruebes que todo funciona.</p>
+      <label>Nuevo usuario (déjalo igual si no lo quieres cambiar)
+        <input type="text" id="cuenta-user" required>
+      </label>
+      <label>Nueva contraseña
+        <input type="password" id="cuenta-pass" required minlength="4" placeholder="Mínimo 4 caracteres">
+      </label>
+      <label>Repite la nueva contraseña
+        <input type="password" id="cuenta-pass2" required minlength="4">
+      </label>
+      <button type="submit" class="btn-primary">Actualizar credenciales</button>
+      <p class="form-note" id="cuenta-note"></p>
+    </form>
 
   </div>
 </div>

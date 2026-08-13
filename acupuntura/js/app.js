@@ -374,23 +374,147 @@ function switchMode(mode) {
 }
 modeButtons.forEach(b => b.addEventListener("click", () => switchMode(b.dataset.mode)));
 
+/* ---------------- Autenticación (usuario / admin) ----------------
+   Aviso honesto: esto es una valla de acceso a nivel de interfaz,
+   no seguridad real de servidor. Al ser una web estática sin backend,
+   cualquier persona con conocimientos técnicos podría saltársela
+   desde las herramientas de desarrollador del navegador. Como los
+   datos se guardan solo en el propio navegador de cada visitante
+   (ver STORAGE_KEY más arriba), no hay ningún dato compartido real
+   que proteger: como mucho, alguien tocaría su propia copia local.
+------------------------------------------------------------------- */
+
+const AUTH_KEY = "tangji_auth_v1";
+const SESSION_KEY = "tangji_role";
+
+async function sha256Hex(text) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function ensureAuthInitialized() {
+  if (!localStorage.getItem(AUTH_KEY)) {
+    const passHash = await sha256Hex("1234");
+    localStorage.setItem(AUTH_KEY, JSON.stringify({ username: "admin", passHash }));
+  }
+}
+
+function getAuth() {
+  try {
+    return JSON.parse(localStorage.getItem(AUTH_KEY));
+  } catch (e) {
+    return null;
+  }
+}
+
+function isAdmin() {
+  return sessionStorage.getItem(SESSION_KEY) === "admin";
+}
+
+function setAdminSession(on) {
+  if (on) sessionStorage.setItem(SESSION_KEY, "admin");
+  else sessionStorage.removeItem(SESSION_KEY);
+  updateSessionUI();
+}
+
+function updateSessionUI() {
+  const admin = isAdmin();
+  editToggle.classList.toggle("is-admin", admin);
+  editToggle.textContent = admin ? "✎ Editar" : "✎ Editar";
+  logoutBtn.classList.toggle("is-hidden", !admin);
+}
+
 /* ---------------- Panel de edición ---------------- */
 
 const editToggle = document.getElementById("editToggle");
+const logoutBtn = document.getElementById("logoutBtn");
 const editOverlay = document.getElementById("editOverlay");
 const closeEdit = document.getElementById("closeEdit");
+const loginOverlay = document.getElementById("loginOverlay");
+const closeLogin = document.getElementById("closeLogin");
 
 function openEdit() {
   editOverlay.classList.remove("is-hidden");
   refreshParentSelects();
+  const auth = getAuth();
+  if (auth) document.getElementById("cuenta-user").value = auth.username;
 }
 function closeEditPanel() {
   editOverlay.classList.add("is-hidden");
 }
-editToggle.addEventListener("click", openEdit);
+function openLogin() {
+  document.getElementById("login-note").textContent = "";
+  document.getElementById("form-login").reset();
+  loginOverlay.classList.remove("is-hidden");
+  document.getElementById("login-user").focus();
+}
+function closeLoginPanel() {
+  loginOverlay.classList.add("is-hidden");
+}
+
+editToggle.addEventListener("click", () => {
+  if (isAdmin()) {
+    openEdit();
+  } else {
+    openLogin();
+  }
+});
+logoutBtn.addEventListener("click", () => {
+  setAdminSession(false);
+});
 closeEdit.addEventListener("click", closeEditPanel);
+closeLogin.addEventListener("click", closeLoginPanel);
 editOverlay.addEventListener("click", e => {
   if (e.target === editOverlay) closeEditPanel();
+});
+loginOverlay.addEventListener("click", e => {
+  if (e.target === loginOverlay) closeLoginPanel();
+});
+
+document.getElementById("form-login").addEventListener("submit", async e => {
+  e.preventDefault();
+  const user = document.getElementById("login-user").value.trim();
+  const pass = document.getElementById("login-pass").value;
+  const note = document.getElementById("login-note");
+
+  await ensureAuthInitialized();
+  const auth = getAuth();
+  const passHash = await sha256Hex(pass);
+
+  if (auth && user === auth.username && passHash === auth.passHash) {
+    setAdminSession(true);
+    closeLoginPanel();
+    openEdit();
+  } else {
+    note.classList.add("is-error");
+    note.textContent = "Usuario o contraseña incorrectos.";
+  }
+});
+
+document.getElementById("form-cuenta").addEventListener("submit", async e => {
+  e.preventDefault();
+  const note = document.getElementById("cuenta-note");
+  const user = document.getElementById("cuenta-user").value.trim();
+  const pass = document.getElementById("cuenta-pass").value;
+  const pass2 = document.getElementById("cuenta-pass2").value;
+
+  if (pass !== pass2) {
+    note.classList.add("is-error");
+    note.textContent = "Las dos contraseñas no coinciden.";
+    return;
+  }
+  if (!user || pass.length < 4) {
+    note.classList.add("is-error");
+    note.textContent = "El usuario no puede estar vacío y la contraseña debe tener al menos 4 caracteres.";
+    return;
+  }
+
+  const passHash = await sha256Hex(pass);
+  localStorage.setItem(AUTH_KEY, JSON.stringify({ username: user, passHash }));
+  note.classList.remove("is-error");
+  note.textContent = "✓ Credenciales actualizadas. Úsalas la próxima vez que inicies sesión.";
+  document.getElementById("form-cuenta").reset();
+  document.getElementById("cuenta-user").value = user;
 });
 
 document.querySelectorAll(".edit-tab").forEach(tab => {
@@ -589,6 +713,7 @@ document.getElementById("resetBtn").addEventListener("click", () => {
 
 /* ---------------- Arranque ---------------- */
 
+ensureAuthInitialized().then(updateSessionUI);
 renderTree("");
 renderPointList("");
 renderMeridianFilter();

@@ -13,9 +13,18 @@ Tradicional China, en lugar de tenerlo todo repartido en libretas.
   (ubicación, indicaciones, técnica, precauciones, y en qué dolencias se usa).
 - **Atlas:** listado de puntos filtrable por meridiano (de momento sin
   diagrama del cuerpo — es el siguiente paso).
-- **Editar:** un botón arriba a la derecha abre un panel para añadir
-  categorías, dolencias y puntos sin tocar código. Todo se guarda solo en
-  este navegador.
+- **Editar (requiere iniciar sesión):** un botón arriba a la derecha pide
+  usuario y contraseña antes de dejar añadir o editar contenido. Por
+  defecto es `admin` / `1234` — cámbialo cuanto antes desde
+  "Editar → Cuenta". Consultar la web (buscar dolencias, ver puntos) nunca
+  requiere iniciar sesión.
+
+  **Importante sobre esto:** al ser una web sin servidor, este login es
+  una valla de acceso para uso normal, no seguridad de nivel bancario —
+  alguien con conocimientos técnicos podría saltárselo desde las
+  herramientas de desarrollador del navegador. No es grave porque, como se
+  explica abajo, cada visitante solo puede tocar su propia copia local de
+  los datos, nunca la de otra persona.
 - **Copia de seguridad:** dentro de "Editar → Copia de seguridad" se puede
   descargar todo en un archivo `.json` y volver a cargarlo (útil al cambiar
   de ordenador, o simplemente para no perder el trabajo).
