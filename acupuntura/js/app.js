@@ -14,6 +14,9 @@ function loadData() {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.categories) && Array.isArray(parsed.points)) {
+        if (!Array.isArray(parsed.diagrams)) {
+          parsed.diagrams = cloneData(DEFAULT_DATA.diagrams);
+        }
         return parsed;
       }
     }
@@ -649,6 +652,8 @@ function refreshEverything() {
   renderMeridianFilter();
   renderPointList("", currentMeridianFilter, atlasListEl);
   refreshParentSelects();
+  if (typeof populateDiagramPointPicker === "function") populateDiagramPointPicker();
+  if (typeof renderDiagramMarkers === "function") renderDiagramMarkers();
 }
 
 function switchEditTab(tabName) {
@@ -999,9 +1004,14 @@ document.getElementById("importFile").addEventListener("change", e => {
       if (!Array.isArray(parsed.categories) || !Array.isArray(parsed.points)) {
         throw new Error("Formato no reconocido");
       }
+      if (!Array.isArray(parsed.diagrams)) {
+        parsed.diagrams = cloneData(DEFAULT_DATA.diagrams);
+      }
       DATA = parsed;
       saveData();
       refreshEverything();
+      renderDiagramTabs();
+      switchDiagram(currentDiagramId);
       document.getElementById("datos-note").classList.remove("is-error");
       document.getElementById("datos-note").textContent = "✓ Datos restaurados desde el archivo.";
     } catch (err) {
@@ -1019,8 +1029,136 @@ document.getElementById("resetBtn").addEventListener("click", () => {
   DATA = cloneData(DEFAULT_DATA);
   currentMeridianFilter = null;
   refreshEverything();
+  renderDiagramTabs();
+  switchDiagram("front");
   document.getElementById("datos-note").classList.remove("is-error");
   document.getElementById("datos-note").textContent = "✓ Restaurado a los datos de ejemplo.";
+});
+
+/* ===================== ATLAS: DIAGRAMAS INTERACTIVOS ===================== */
+
+let currentDiagramId = "front";
+let diagramPlaceMode = false;
+
+const diagramTabsEl = document.getElementById("diagramTabs");
+const diagramCanvasEl = document.getElementById("diagramCanvas");
+const diagramArtEl = document.getElementById("diagramArt");
+const diagramMarkersEl = document.getElementById("diagramMarkers");
+const diagramPointPickerEl = document.getElementById("diagramPointPicker");
+const diagramPlaceModeBtn = document.getElementById("diagramPlaceModeBtn");
+const diagramNoteEl = document.getElementById("diagramNote");
+
+function getDiagram(id) {
+  return DATA.diagrams.find(d => d.id === id);
+}
+
+function renderDiagramTabs() {
+  diagramTabsEl.innerHTML = "";
+  DATA.diagrams.forEach(d => {
+    const btn = document.createElement("button");
+    btn.className = "diagram-tab" + (d.id === currentDiagramId ? " is-active" : "");
+    btn.textContent = d.label;
+    btn.addEventListener("click", () => switchDiagram(d.id));
+    diagramTabsEl.appendChild(btn);
+  });
+}
+
+function switchDiagram(id) {
+  currentDiagramId = id;
+  renderDiagramTabs();
+  diagramArtEl.innerHTML = (BODY_SILHOUETTE_SVG[id] || "").trim();
+  renderDiagramMarkers();
+}
+
+function populateDiagramPointPicker() {
+  const current = diagramPointPickerEl.value;
+  const points = DATA.points.slice().sort((a, b) => a.code.localeCompare(b.code));
+  diagramPointPickerEl.innerHTML = '<option value="">— Elige un punto —</option>';
+  points.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p.code;
+    opt.textContent = p.code + " · " + p.name;
+    diagramPointPickerEl.appendChild(opt);
+  });
+  if (points.some(p => p.code === current)) diagramPointPickerEl.value = current;
+}
+
+function renderDiagramMarkers() {
+  diagramMarkersEl.innerHTML = "";
+  const diagram = getDiagram(currentDiagramId);
+  if (!diagram) return;
+  diagram.markers.forEach(marker => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "diagram-marker";
+    btn.style.left = marker.x + "%";
+    btn.style.top = marker.y + "%";
+    btn.title = marker.code;
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      handleMarkerClick(diagram, marker);
+    });
+    diagramMarkersEl.appendChild(btn);
+  });
+}
+
+function handleMarkerClick(diagram, marker) {
+  if (isAdmin() && diagramPlaceMode) {
+    if (confirm('¿Quitar el marcador de "' + marker.code + '" de este diagrama?')) {
+      diagram.markers = diagram.markers.filter(m => m !== marker);
+      saveData();
+      renderDiagramMarkers();
+    }
+    return;
+  }
+  const pt = DATA.points.find(p => p.code === marker.code);
+  if (!pt) {
+    alert('El punto "' + marker.code + '" ya no existe en la ficha de puntos.');
+    return;
+  }
+  switchMode("puntos");
+  searchPointEl.value = "";
+  renderPointList("");
+  renderPointDetail(pt);
+  const row = pointListEl.querySelector('[data-code="' + pt.code + '"] .node-row');
+  if (row) row.classList.add("is-selected");
+}
+
+diagramCanvasEl.addEventListener("click", e => {
+  if (!isAdmin() || !diagramPlaceMode) return;
+  if (e.target.closest(".diagram-marker")) return;
+
+  const code = diagramPointPickerEl.value;
+  if (!code) {
+    diagramNoteEl.classList.add("is-error");
+    diagramNoteEl.textContent = "Elige primero un punto en la lista de arriba.";
+    return;
+  }
+  const rect = diagramMarkersEl.getBoundingClientRect();
+  const clamp = v => Math.max(0, Math.min(100, v));
+  const x = clamp(Math.round((((e.clientX - rect.left) / rect.width) * 100) * 10) / 10);
+  const y = clamp(Math.round((((e.clientY - rect.top) / rect.height) * 100) * 10) / 10);
+
+  const diagram = getDiagram(currentDiagramId);
+  diagram.markers.push({ code, x, y });
+  saveData();
+  renderDiagramMarkers();
+  diagramNoteEl.classList.remove("is-error");
+  diagramNoteEl.textContent = "✓ Punto \"" + code + "\" colocado.";
+});
+
+diagramPlaceModeBtn.addEventListener("click", () => {
+  diagramPlaceMode = !diagramPlaceMode;
+  diagramPlaceModeBtn.classList.toggle("is-active", diagramPlaceMode);
+  diagramPlaceModeBtn.textContent = diagramPlaceMode
+    ? "🎯 Modo colocar puntos: activado"
+    : "🎯 Modo colocar puntos: desactivado";
+  diagramCanvasEl.classList.toggle("is-place-mode", diagramPlaceMode);
+  diagramNoteEl.textContent = diagramPlaceMode
+    ? "Elige un punto arriba y haz clic en el cuerpo para colocarlo. Clica un marcador ya puesto para quitarlo."
+    : "";
+  diagramNoteEl.classList.remove("is-error");
+  if (diagramPlaceMode) populateDiagramPointPicker();
 });
 
 /* ---------------- Arranque ---------------- */
@@ -1030,3 +1168,6 @@ renderTree("");
 renderPointList("");
 renderMeridianFilter();
 renderPointList("", null, atlasListEl);
+renderDiagramTabs();
+switchDiagram("front");
+populateDiagramPointPicker();

@@ -11,8 +11,15 @@ Tradicional China, en lugar de tenerlo todo repartido en libretas.
   varios niveles escondida).
 - **Por punto:** buscar un punto por código o nombre y ver su ficha completa
   (ubicación, indicaciones, técnica, precauciones, y en qué dolencias se usa).
-- **Atlas:** listado de puntos filtrable por meridiano (de momento sin
-  diagrama del cuerpo — es el siguiente paso).
+- **Atlas:** listado de puntos filtrable por meridiano, y debajo dos
+  siluetas esquemáticas del cuerpo (frontal y posterior, dibujadas a
+  medida, sin fotos con derechos de autor de por medio) con marcadores
+  clicables — clicar uno lleva directo a la ficha de ese punto.
+  Como admin, un botón "🎯 Modo colocar puntos" permite elegir un punto de
+  una lista y hacer clic en el sitio exacto del cuerpo donde va (mirando
+  el atlas de referencia real); clicar un marcador ya puesto, con el modo
+  activado, lo quita. Los marcadores de ejemplo que trae la web son solo
+  ilustrativos — hay que recolocarlos con esta herramienta.
 - **Editar (requiere iniciar sesión):** un botón arriba a la derecha pide
   usuario y contraseña antes de dejar añadir o editar contenido. Por
   defecto es `admin` / `1234` — cámbialo cuanto antes desde

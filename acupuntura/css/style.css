@@ -560,3 +560,77 @@ body:not(.is-admin) .admin-only{ display: none !important; }
 
 .form-btn-row{ display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 
+/* ---------------- Atlas: diagramas interactivos ---------------- */
+
+.diagram-section{ margin-top: 30px; }
+
+.diagram-tabs{
+  display: flex; gap: 8px;
+  margin-bottom: 14px;
+}
+.diagram-tab{
+  border: 1px solid var(--line);
+  background: var(--ink-panel);
+  color: var(--paper-dim);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.diagram-tab.is-active{
+  background: var(--jade); color: #0f1613; border-color: var(--jade);
+}
+
+.diagram-tools{
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  background: var(--ink-panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.diagram-tools select{
+  background: var(--ink-raised);
+  border: 1px solid var(--line);
+  color: var(--paper);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+#diagramPlaceModeBtn.is-active{
+  background: var(--cinnabar); border-color: var(--cinnabar); color: var(--paper);
+}
+
+.diagram-canvas{
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  background: var(--ink-panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.diagram-canvas.is-place-mode{ cursor: crosshair; }
+
+.diagram-art{ pointer-events: none; }
+.diagram-art svg.body-svg{ display: block; width: 100%; height: auto; }
+
+.diagram-markers{ position: absolute; inset: 20px; }
+
+.diagram-marker{
+  position: absolute;
+  width: 16px; height: 16px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--cinnabar);
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 2px rgba(194,86,74,0.35);
+  cursor: pointer;
+  padding: 0;
+}
+.diagram-marker:hover{
+  background: var(--brass);
+  box-shadow: 0 0 0 4px rgba(203,162,94,0.35);
+}
+

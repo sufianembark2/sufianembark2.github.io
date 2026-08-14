@@ -88,9 +88,24 @@
     <div class="atlas-wrap">
       <div class="meridian-filter" id="meridianFilter"></div>
       <div class="atlas-note">
-        <p>Aquí irá el atlas visual del cuerpo con los puntos ubicados sobre cada meridiano. De momento, filtra por meridiano para ver el listado de sus puntos — más adelante añadimos los diagramas del cuerpo.</p>
+        <p>Filtra por meridiano para ver el listado de sus puntos. Más abajo, los diagramas del cuerpo con los puntos marcados — clica un marcador para ir a su ficha.</p>
       </div>
       <div class="tree-pane" id="atlasList"></div>
+
+      <div class="diagram-section">
+        <div class="diagram-tabs" id="diagramTabs"></div>
+
+        <div class="admin-only diagram-tools">
+          <select id="diagramPointPicker"></select>
+          <button type="button" class="btn-secondary" id="diagramPlaceModeBtn">🎯 Modo colocar puntos: desactivado</button>
+          <span class="form-note" id="diagramNote"></span>
+        </div>
+
+        <div class="diagram-canvas" id="diagramCanvas">
+          <div class="diagram-art" id="diagramArt"></div>
+          <div class="diagram-markers" id="diagramMarkers"></div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -234,6 +249,7 @@
   </div>
 </div>
 
+<script src="js/body-diagrams.js"></script>
 <script src="js/data.js"></script>
 <script src="js/app.js"></script>
 </body>

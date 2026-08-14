@@ -184,5 +184,27 @@ const DEFAULT_DATA = {
       technique: "Punción oblicua 0.3-0.5 cun.",
       cautions: "Ninguna relevante en uso habitual."
     }
+  ],
+
+  /* Diagramas del atlas: cada uno usa la silueta definida en
+     js/body-diagrams.js (mismo dibujo para "front" y "back", identificado
+     por su id). Los marcadores son solo de ejemplo — el sitio exacto de
+     cada punto se coloca con el modo "Colocar puntos" del panel admin,
+     mirando el atlas de referencia real. */
+  diagrams: [
+    {
+      id: "front",
+      label: "Vista frontal (esquemática)",
+      markers: [
+        { code: "DU20", x: 50, y: 6 }
+      ]
+    },
+    {
+      id: "back",
+      label: "Vista posterior (esquemática)",
+      markers: [
+        { code: "V23", x: 50, y: 56 }
+      ]
+    }
   ]
 };
