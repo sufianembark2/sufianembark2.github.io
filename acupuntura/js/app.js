@@ -384,11 +384,6 @@ function renderPointDetail(pt) {
     html += "</ul>";
   }
 
-  html += '<div class="photo-gallery is-hidden" id="photoGallery">' +
-    '<p class="detail-section-label">Fotos</p>' +
-    '<div class="photo-grid" id="photoGrid"></div>' +
-    "</div>";
-
   pointDetailEl.innerHTML = html;
   renderPointPhotos(pt.code);
   pointDetailEl.querySelectorAll(".used-in-list li").forEach((li, i) => {

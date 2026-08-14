@@ -636,7 +636,12 @@ body:not(.is-admin) .admin-only{ display: none !important; }
 
 /* ---------------- Galería de fotos por punto ---------------- */
 
-.photo-gallery.is-hidden{ display: none; }
+.photo-gallery-full{
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+.photo-gallery-full.is-hidden{ display: none; }
 
 .photo-grid{
   display: flex;
