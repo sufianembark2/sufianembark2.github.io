@@ -384,7 +384,13 @@ function renderPointDetail(pt) {
     html += "</ul>";
   }
 
+  html += '<div class="photo-gallery is-hidden" id="photoGallery">' +
+    '<p class="detail-section-label">Fotos</p>' +
+    '<div class="photo-grid" id="photoGrid"></div>' +
+    "</div>";
+
   pointDetailEl.innerHTML = html;
+  renderPointPhotos(pt.code);
   pointDetailEl.querySelectorAll(".used-in-list li").forEach((li, i) => {
     li.addEventListener("click", () => {
       switchMode("enfermedades");
@@ -397,6 +403,74 @@ function renderPointDetail(pt) {
 
 searchPointEl.addEventListener("input", () => {
   renderPointList(searchPointEl.value.trim().toLowerCase(), currentMeridianFilter);
+});
+
+/* ---------------- Fotos por punto (carpeta local, sin edición) ----------------
+   Convención: images/points/<CÓDIGO>/1.jpg, 2.jpg, 3.jpg... (también valen
+   .jpeg, .png, .webp). No hace falta registrar nada en el panel de edición:
+   basta con crear la carpeta con el código exacto del punto (mayúsculas,
+   tal cual aparece en su ficha) y arrastrar las fotos numeradas desde 1.
+   El navegador no puede "listar" una carpeta por su cuenta en una web
+   estática, así que se prueban los números del 1 al máximo y se muestran
+   solo los que existan de verdad.
+------------------------------------------------------------------- */
+
+const PHOTO_MAX_PER_POINT = 12;
+const PHOTO_EXTENSIONS = ["jpg", "jpeg", "png", "webp"];
+
+function tryLoadPhoto(code, index, extIdx, gridEl, wrapperEl) {
+  if (extIdx >= PHOTO_EXTENSIONS.length) return;
+  const path = "images/points/" + encodeURIComponent(code) + "/" + index + "." + PHOTO_EXTENSIONS[extIdx];
+  const img = new Image();
+  img.onload = () => {
+    wrapperEl.classList.remove("is-hidden");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "photo-thumb";
+    const thumb = document.createElement("img");
+    thumb.src = path;
+    thumb.alt = code + " · foto " + index;
+    thumb.loading = "lazy";
+    btn.appendChild(thumb);
+    btn.addEventListener("click", () => openLightbox(path, thumb.alt));
+    gridEl.appendChild(btn);
+  };
+  img.onerror = () => {
+    tryLoadPhoto(code, index, extIdx + 1, gridEl, wrapperEl);
+  };
+  img.src = path;
+}
+
+function renderPointPhotos(code) {
+  const wrapperEl = document.getElementById("photoGallery");
+  const gridEl = document.getElementById("photoGrid");
+  if (!wrapperEl || !gridEl) return;
+  gridEl.innerHTML = "";
+  wrapperEl.classList.add("is-hidden");
+  for (let i = 1; i <= PHOTO_MAX_PER_POINT; i++) {
+    tryLoadPhoto(code, i, 0, gridEl, wrapperEl);
+  }
+}
+
+const lightboxEl = document.getElementById("photoLightbox");
+const lightboxImgEl = document.getElementById("lightboxImg");
+const lightboxCloseEl = document.getElementById("lightboxClose");
+
+function openLightbox(src, alt) {
+  lightboxImgEl.src = src;
+  lightboxImgEl.alt = alt || "";
+  lightboxEl.classList.remove("is-hidden");
+}
+function closeLightbox() {
+  lightboxEl.classList.add("is-hidden");
+  lightboxImgEl.src = "";
+}
+lightboxCloseEl.addEventListener("click", closeLightbox);
+lightboxEl.addEventListener("click", e => {
+  if (e.target === lightboxEl) closeLightbox();
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeLightbox();
 });
 
 /* ---------------- Modo: atlas ---------------- */
